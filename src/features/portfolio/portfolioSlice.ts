@@ -1,6 +1,11 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  createEntityAdapter,
+  createSlice,
+  EntityState,
+  PayloadAction,
+} from "@reduxjs/toolkit";
 import { createAppAsyncThunk } from "../../app/withTypes";
-import { PortfolioList } from "./PortfolioList";
+import { RootState } from "../../app/store";
 
 export const PORTFOLIO_ASSET_TYPES = [
   "All",
@@ -10,9 +15,10 @@ export const PORTFOLIO_ASSET_TYPES = [
 ] as const;
 
 export type PortfolioAssetType = (typeof PORTFOLIO_ASSET_TYPES)[number]; // set as union type.
+export type PortfolioId = string;
 
 export type Portfolio = {
-  id: string;
+  id: PortfolioId;
   name: string;
   type: PortfolioAssetType;
   investedAmount: number;
@@ -22,15 +28,18 @@ export type Portfolio = {
 type PortfolioStatus = "idle" | "loading" | "completed" | "failed";
 type Portfolios = Portfolio[];
 
-type PortfolioSliceState = {
+interface PortfolioSliceState extends EntityState<Portfolio, string> {
   status: PortfolioStatus;
-  portfolios: Portfolios;
-};
+  // list of select portfolioIds
+  selected: PortfolioId[];
+}
 
-const initialState: PortfolioSliceState = {
+const portfoliosAdapter = createEntityAdapter<Portfolio>({});
+
+const initialState: PortfolioSliceState = portfoliosAdapter.getInitialState({
   status: "idle",
-  portfolios: [],
-};
+  selected: [],
+});
 
 const fetchPortfoliosHelper = async (): Promise<Portfolios> =>
   (await fetch("/mock-portfolio.json")).json();
@@ -41,26 +50,6 @@ export const fetchPortfolios = createAppAsyncThunk(
   fetchPortfoliosHelper, // payload
 );
 
-// // utility fns
-// function getRandomInt(min: number, max: number) {
-//   min = Math.ceil(min);
-//   max = Math.floor(max);
-//   return Math.floor(Math.random() * (max - min + 1)) + min;
-// }
-
-// // mock refetch which would modify the the prices randomly
-// export const reFetchPortfolios = createAppAsyncThunk(
-//   "portfolios/reFetchPortfolios", // type (not url)
-//   async () => {
-//     const portfolios = await fetchPortfoliosHelper();
-//     // setTimeout(() => {}, 500);
-//     portfolios.map(p => ({
-//       ...p,
-//       currentValue: p.currentValue + getRandomInt(-5, 5),
-//     }));
-//   },
-// );
-
 export const portfolioSlice = createSlice({
   name: "portfolio",
   initialState,
@@ -68,6 +57,21 @@ export const portfolioSlice = createSlice({
     setStatus: create.reducer(
       (state, action: PayloadAction<PortfolioStatus>) => {
         state.status = action.payload;
+      },
+    ),
+    setSelected: create.reducer(
+      (state, action: PayloadAction<PortfolioId[]>) => {
+        state.selected = action.payload;
+      },
+    ),
+    toggleSelected: create.reducer(
+      (state, action: PayloadAction<PortfolioId>) => {
+        const idx = state.selected.findIndex(s => s === action.payload);
+        if (idx === -1) {
+          state.selected.push(action.payload);
+        } else {
+          state.selected.splice(idx, 1);
+        }
       },
     ),
   }),
@@ -79,7 +83,8 @@ export const portfolioSlice = createSlice({
       })
       .addCase(fetchPortfolios.fulfilled, (state, action) => {
         state.status = "completed";
-        state.portfolios = action.payload;
+        // state.portfolios = action.payload.;
+        portfoliosAdapter.setAll(state, action.payload);
       })
       .addCase(fetchPortfolios.rejected, state => {
         state.status = "failed";
@@ -87,11 +92,19 @@ export const portfolioSlice = createSlice({
   },
 
   selectors: {
-    getPortfolios: state => state.portfolios,
     getStatus: state => state.status,
+    getSelected: state => state.selected,
   },
 });
 
-export const { setStatus } = portfolioSlice.actions;
-export const { getPortfolios, getStatus } = portfolioSlice.selectors;
+export const { setStatus, setSelected, toggleSelected } =
+  portfolioSlice.actions;
+export const { getStatus, getSelected } = portfolioSlice.selectors;
 export const portfoliosReducer = portfolioSlice.reducer;
+// Export the customized selectors for this adapter using `getSelectors`
+export const {
+  selectAll: selectAllPortfolios,
+  selectById: selectPortfolioById,
+  //   selectIds: selectPortfolioIds,
+  // Pass in a selector that returns the posts slice of state
+} = portfoliosAdapter.getSelectors((state: RootState) => state.portfolio);

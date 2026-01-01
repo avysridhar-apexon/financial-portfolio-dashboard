@@ -2,8 +2,10 @@ import { PORTFOLIO_ASSET_TYPES, PortfolioAssetType } from "./portfolioSlice";
 import classes from "./FilterBar.module.css";
 
 export default function FilterBar({
+  value,
   onSelect,
 }: {
+  value: PortfolioAssetType;
   onSelect: (value: PortfolioAssetType) => void;
 }) {
   return (
@@ -13,6 +15,7 @@ export default function FilterBar({
         name="asset-type"
         aria-label="Filter by Asset Type"
         onChange={e => onSelect(e.target.value as PortfolioAssetType)}
+        value={value}
         required
       >
         {PORTFOLIO_ASSET_TYPES.map(type => (
