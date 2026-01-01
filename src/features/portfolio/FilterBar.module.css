@@ -1,0 +1,17 @@
+.FilterBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    text-align: center;
+    width: 70%;
+    font-size: 15px;
+}
+
+.FilterBar span {
+    margin-right: 10px;
+    width: 40%;
+}
+
+.FilterBar select {
+    margin-bottom: 0px;
+}

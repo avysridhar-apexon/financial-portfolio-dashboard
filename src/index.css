@@ -11,3 +11,11 @@ code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
+
+/* utilities */
+.error {
+  color: #D93526;
+}
+.success {
+  color: #A5D601;
+}
