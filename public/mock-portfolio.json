@@ -1,0 +1,16 @@
+[
+    {
+        "id": "1",
+        "name": "HDFC Midcap",
+        "type": "Mutual Fund",
+        "investedAmount": 10000,
+        "currentValue": 13200
+    },
+    {
+        "id": "2",
+        "name": "Tata Motors",
+        "type": "Stock",
+        "investedAmount": 5000,
+        "currentValue": 4500
+    }
+]
