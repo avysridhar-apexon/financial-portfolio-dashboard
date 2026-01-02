@@ -117,7 +117,7 @@ export const PortfolioList = () => {
         </thead>
         <tbody>
           {filteredPortfolios.map(p => (
-            <tr key={p.id}>
+            <tr key={p.id} data-testid={`portfolio-row-${p.id}`}>
               <td>{p.name}</td>
               <td>{p.type}</td>
               <td>{p.investedAmount}</td>
@@ -125,6 +125,7 @@ export const PortfolioList = () => {
               <td>
                 <input
                   type="checkbox"
+                  data-testid={`checkbox-${p.id}`}
                   name={p.id}
                   checked={selected.some(s => p.id === s)}
                   onChange={() => dispatch(toggleSelected(p.id))}

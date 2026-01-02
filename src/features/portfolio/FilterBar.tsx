@@ -13,6 +13,7 @@ export default function FilterBar({
       <span>Filter by Asset Type</span>
       <select
         name="asset-type"
+        data-testid="asset-type"
         aria-label="Filter by Asset Type"
         onChange={e => onSelect(e.target.value as PortfolioAssetType)}
         value={value}

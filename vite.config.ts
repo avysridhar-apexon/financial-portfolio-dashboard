@@ -1,7 +1,7 @@
-import react from "@vitejs/plugin-react"
-import * as path from "node:path"
-import { defineConfig } from "vitest/config"
-import packageJson from "./package.json" with { type: "json" }
+import react from "@vitejs/plugin-react";
+import * as path from "node:path";
+import { defineConfig } from "vitest/config";
+import packageJson from "./package.json" with { type: "json" };
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -16,6 +16,8 @@ export default defineConfig({
     name: packageJson.name,
     environment: "jsdom",
 
+    coverage: { provider: "v8", enabled: true },
+
     typecheck: {
       enabled: true,
       tsconfig: path.join(import.meta.dirname, "tsconfig.json"),
@@ -25,4 +27,4 @@ export default defineConfig({
     watch: false,
     setupFiles: ["./src/setupTests.ts"],
   },
-})
+});

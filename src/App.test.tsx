@@ -1,154 +1,100 @@
-import { act, screen } from "@testing-library/react"
-import { App } from "./App"
-import { renderWithProviders } from "./utils/test-utils"
+import { act, screen, waitFor } from "@testing-library/react";
+import { App } from "./App";
+import { renderWithProviders } from "./utils/test-utils";
+import { Mock } from "vitest";
 
-test("App should have correct initial render", () => {
-  renderWithProviders(<App />)
+test("App should have correct initial render with header and loading..", () => {
+  renderWithProviders(<App />);
+  expect(
+    screen.getByText(/Financial Portfolio Dashboard/i),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/loading../i)).toBeInTheDocument();
+  expect(screen.queryByText(/summary../i)).not.toBeInTheDocument();
+});
 
-  const countLabel = screen.getByLabelText<HTMLLabelElement>("Count")
+test("App should have correct error handling on fetch failure", async () => {
+  // throw an error on fetch.
+  global.fetch = vi.fn(() => Promise.reject(new Error("Server Error"))) as Mock;
 
-  const incrementValueInput = screen.getByLabelText<HTMLInputElement>(
-    "Set increment amount",
-  )
+  renderWithProviders(<App />);
 
-  // The app should be rendered correctly
-  expect(screen.getByText(/learn/i)).toBeInTheDocument()
+  expect(screen.getByText(/loading../i)).toBeInTheDocument();
+  // expecting Retry Button to show up (waits for sometine..)
+  expect(await screen.findByText(/Retry/i)).toBeInTheDocument();
+});
 
-  // Initial state: count should be 0, incrementValue should be 2
-  expect(countLabel).toHaveTextContent("0")
-  expect(incrementValueInput).toHaveValue(2)
-})
+test("App should have correct data after filter by asset type", async () => {
+  // throw an error on fetch.
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      json: () =>
+        Promise.resolve([
+          {
+            id: "1",
+            name: "HDFC Midcap",
+            type: "Mutual Fund",
+            investedAmount: 10000,
+            currentValue: 13200,
+          },
+          {
+            id: "2",
+            name: "name2",
+            type: "Bond",
+            investedAmount: 1000,
+            currentValue: 1320,
+          },
+        ]),
+    }),
+  ) as Mock;
 
-test("Increment value and Decrement value should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
+  const { user } = renderWithProviders(<App />);
 
-  const countLabel = screen.getByLabelText<HTMLLabelElement>("Count")
+  expect(await screen.findByTestId("portfolio-row-1")).toBeInTheDocument();
 
-  const incrementValueButton =
-    screen.getByLabelText<HTMLButtonElement>("Increment value")
+  // select Bond as filter.
+  user.selectOptions(await screen.findByTestId("asset-type"), "Mutual Fund");
+  expect(await screen.findByTestId("portfolio-row-1")).not.toBeNull();
+  user.selectOptions(await screen.findByTestId("asset-type"), "Bond");
+  expect(await screen.findByTestId("portfolio-row-2")).not.toBeNull();
+  //
+});
 
-  const decrementValueButton =
-    screen.getByLabelText<HTMLButtonElement>("Decrement value")
+test("App should have correct data for selected/tracking", async () => {
+  // throw an error on fetch.
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      json: () =>
+        Promise.resolve([
+          {
+            id: "1",
+            name: "HDFC Midcap",
+            type: "Mutual Fund",
+            investedAmount: 10000,
+            currentValue: 13200,
+          },
+          {
+            id: "2",
+            name: "name2",
+            type: "Bond",
+            investedAmount: 1000,
+            currentValue: 1320,
+          },
+        ]),
+    }),
+  ) as Mock;
 
-  // Click on "+" => Count should be 1
-  await user.click(incrementValueButton)
-  expect(countLabel).toHaveTextContent("1")
+  const { user } = renderWithProviders(<App />);
+  // check if checkbox is in rendered.
+  expect(await screen.findByTestId("checkbox-1")).toBeInTheDocument();
+  // initially no summary
+  expect(screen.queryByText(/summary/i)).not.toBeInTheDocument();
+  expect(screen.queryByText("Total: 13200")).not.toBeInTheDocument();
+  expect(screen.queryByText("Count: 1")).not.toBeInTheDocument();
 
-  // Click on "-" => Count should be 0
-  await user.click(decrementValueButton)
-  expect(countLabel).toHaveTextContent("0")
-})
-
-test("Add Amount should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
-
-  const countLabel = screen.getByLabelText<HTMLLabelElement>("Count")
-
-  const incrementValueInput = screen.getByLabelText<HTMLInputElement>(
-    "Set increment amount",
-  )
-
-  const addAmountButton = screen.getByText<HTMLButtonElement>("Add Amount")
-
-  // "Add Amount" button is clicked => Count should be 2
-  await user.click(addAmountButton)
-  expect(countLabel).toHaveTextContent("2")
-
-  // incrementValue is 2, click on "Add Amount" => Count should be 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "2")
-  await user.click(addAmountButton)
-  expect(countLabel).toHaveTextContent("4")
-
-  // [Negative number] incrementValue is -1, click on "Add Amount" => Count should be 3
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "-1")
-  await user.click(addAmountButton)
-  expect(countLabel).toHaveTextContent("3")
-})
-
-it("Add Async should work as expected", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true })
-
-  const { user } = renderWithProviders(<App />)
-
-  const addAsyncButton = screen.getByText<HTMLButtonElement>("Add Async")
-
-  const countLabel = screen.getByLabelText<HTMLLabelElement>("Count")
-
-  const incrementValueInput = screen.getByLabelText<HTMLInputElement>(
-    "Set increment amount",
-  )
-
-  await user.click(addAsyncButton)
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(500)
-  })
-
-  // "Add Async" button is clicked => Count should be 2
-  expect(countLabel).toHaveTextContent("2")
-
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "2")
-
-  await user.click(addAsyncButton)
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(500)
-  })
-
-  // incrementValue is 2, click on "Add Async" => Count should be 4
-  expect(countLabel).toHaveTextContent("4")
-
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "-1")
-  await user.click(addAsyncButton)
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(500)
-  })
-
-  // [Negative number] incrementValue is -1, click on "Add Async" => Count should be 3
-  expect(countLabel).toHaveTextContent("3")
-
-  vi.useRealTimers()
-})
-
-test("Add If Odd should work as expected", async () => {
-  const { user } = renderWithProviders(<App />)
-
-  const countLabel = screen.getByLabelText<HTMLLabelElement>("Count")
-
-  const addIfOddButton = screen.getByText<HTMLButtonElement>("Add If Odd")
-
-  const incrementValueInput = screen.getByLabelText<HTMLInputElement>(
-    "Set increment amount",
-  )
-
-  const incrementValueButton =
-    screen.getByLabelText<HTMLButtonElement>("Increment value")
-
-  // "Add If Odd" button is clicked => Count should stay 0
-  await user.click(addIfOddButton)
-  expect(countLabel).toHaveTextContent("0")
-
-  // Click on "+" => Count should be updated to 1
-  await user.click(incrementValueButton)
-  expect(countLabel).toHaveTextContent("1")
-
-  // "Add If Odd" button is clicked => Count should be updated to 3
-  await user.click(addIfOddButton)
-  expect(countLabel).toHaveTextContent("3")
-
-  // incrementValue is 1, click on "Add If Odd" => Count should be updated to 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "1")
-  await user.click(addIfOddButton)
-  expect(countLabel).toHaveTextContent("4")
-
-  // click on "Add If Odd" => Count should stay 4
-  await user.clear(incrementValueInput)
-  await user.type(incrementValueInput, "-1")
-  await user.click(addIfOddButton)
-  expect(countLabel).toHaveTextContent("4")
-})
+  // click row 1. (select)
+  user.click(await screen.findByTestId("checkbox-1"));
+  expect(await screen.findByText(/summary/i)).toBeInTheDocument();
+  // check if correct summary is shown.
+  expect(await screen.findByText("Total: 13200")).toBeInTheDocument();
+  expect(await screen.findByText("Count: 1")).toBeInTheDocument();
+});
