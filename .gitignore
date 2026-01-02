@@ -27,4 +27,4 @@ dist-ssr
 yalc.lock
 # tmp dev stuff
 tmp/
-coverage/
+coverage
